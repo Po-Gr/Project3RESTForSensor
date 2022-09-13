@@ -10,5 +10,5 @@ import java.util.List;
 public interface MeasurementsRepository  extends JpaRepository<Measurement, Integer> {
     public long countByRaining(Boolean b);
 
-    public long countDistinctByMeasuredAtAndRaining(Boolean b);
+    public long countDistinctMeasuredAtByRaining(Boolean b);
 }

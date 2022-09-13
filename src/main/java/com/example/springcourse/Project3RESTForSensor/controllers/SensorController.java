@@ -3,15 +3,17 @@ package com.example.springcourse.Project3RESTForSensor.controllers;
 import com.example.springcourse.Project3RESTForSensor.dto.SensorDTO;
 import com.example.springcourse.Project3RESTForSensor.models.Sensor;
 import com.example.springcourse.Project3RESTForSensor.services.SensorService;
+import com.example.springcourse.Project3RESTForSensor.util.MeasurementNotCreatedException;
+import com.example.springcourse.Project3RESTForSensor.util.SensorErrorResponse;
+import com.example.springcourse.Project3RESTForSensor.util.SensorNotCreatedException;
+import com.example.springcourse.Project3RESTForSensor.util.SensorValidator;
 import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.util.List;
@@ -20,16 +22,23 @@ import java.util.List;
 @RequestMapping("/sensors")
 public class SensorController {
     private final SensorService sensorService;
-    public final ModelMapper modelMapper;
+    private final ModelMapper modelMapper;
+    private final SensorValidator sensorValidator;
 
-    public SensorController(SensorService sensorService, ModelMapper modelMapper) {
+    @Autowired
+    public SensorController(SensorService sensorService, ModelMapper modelMapper, SensorValidator sensorValidator) {
         this.sensorService = sensorService;
         this.modelMapper = modelMapper;
+        this.sensorValidator = sensorValidator;
     }
 
     @PostMapping("/registration")
     public ResponseEntity<HttpStatus> registerSensor(@RequestBody @Valid SensorDTO sensorDTO,
                                                      BindingResult bindingResult) {
+        Sensor sensor = convertToSensor(sensorDTO);
+
+        sensorValidator.validate(sensor, bindingResult);
+
         if (bindingResult.hasErrors()) {
             StringBuilder errorMsg = new StringBuilder();
 
@@ -40,14 +49,17 @@ public class SensorController {
                         .append("; ");
             }
 
-            throw new PersonNotCreatedException(errorMsg.toString());
+            throw new SensorNotCreatedException(errorMsg.toString());
         }
 
-        sensorService.registerSensor(convertToSensor(sensorDTO));
-
+        sensorService.registerSensor(sensor);
         return ResponseEntity.ok(HttpStatus.OK);
+    }
 
-        //если все ок возвращать ок иначе JSON с ошибкой
+    @ExceptionHandler
+    private ResponseEntity<SensorErrorResponse> handleException(SensorNotCreatedException e) {
+        SensorErrorResponse response = new SensorErrorResponse(e.getMessage(), System.currentTimeMillis());
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
     private Sensor convertToSensor(SensorDTO sensorDTO) {

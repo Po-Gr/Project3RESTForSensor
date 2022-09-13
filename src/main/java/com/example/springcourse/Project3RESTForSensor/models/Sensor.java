@@ -1,6 +1,8 @@
 package com.example.springcourse.Project3RESTForSensor.models;
 
 import javax.persistence.*;
+import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.Size;
 import java.util.List;
 
 @Entity
@@ -8,11 +10,12 @@ import java.util.List;
 public class Sensor {
     @Id
     @Column(name = "name")
+    @NotEmpty(message = "Sensor name should not be empty")
+    @Size(min = 3, max = 30, message = "Sensor name should be from 3 to 30 symbols")
     private String name;
 
     @OneToMany(mappedBy = "sensor")
     private List<Measurement> measurements;
-
     public Sensor() {
     }
 
