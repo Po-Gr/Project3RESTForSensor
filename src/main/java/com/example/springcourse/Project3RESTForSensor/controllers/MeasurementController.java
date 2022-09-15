@@ -1,9 +1,11 @@
 package com.example.springcourse.Project3RESTForSensor.controllers;
 
+import com.example.springcourse.Project3RESTForSensor.dto.AllMeasurementsResponse;
 import com.example.springcourse.Project3RESTForSensor.dto.MeasurementDTO;
 import com.example.springcourse.Project3RESTForSensor.models.Measurement;
 import com.example.springcourse.Project3RESTForSensor.services.MeasurementsService;
 import com.example.springcourse.Project3RESTForSensor.util.MeasurementNotCreatedException;
+import com.example.springcourse.Project3RESTForSensor.util.MeasurementValidator;
 import com.example.springcourse.Project3RESTForSensor.util.SensorErrorResponse;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,18 +24,22 @@ import java.util.stream.Collectors;
 public class MeasurementController {
     private final MeasurementsService measurementsService;
     private final ModelMapper modelMapper;
+    private final MeasurementValidator measurementValidator;
 
     @Autowired
-    public MeasurementController(MeasurementsService measurementsService, ModelMapper modelMapper) {
+    public MeasurementController(MeasurementsService measurementsService, ModelMapper modelMapper, MeasurementValidator measurementValidator) {
         this.measurementsService = measurementsService;
         this.modelMapper = modelMapper;
+        this.measurementValidator = measurementValidator;
     }
 
     @PostMapping("/add")
     public ResponseEntity<HttpStatus> saveMeasurement(@RequestBody @Valid MeasurementDTO measurementDTO,
                                                       BindingResult bindingResult) {
 
-        //если все ок возвращать ок иначе JSON с ошибкой
+        Measurement measurement = convertToMeasurement(measurementDTO);
+
+        measurementValidator.validate(measurement, bindingResult);
 
         if (bindingResult.hasErrors()) {
             StringBuilder errorMsg = new StringBuilder();
@@ -48,14 +54,14 @@ public class MeasurementController {
             throw new MeasurementNotCreatedException(errorMsg.toString());
         }
 
-        measurementsService.saveMeasurement(convertToMeasurement(measurementDTO));
+        measurementsService.saveMeasurement(measurement);
         return ResponseEntity.ok(HttpStatus.OK);
     }
 
     @GetMapping()
-    public List<MeasurementDTO> getMeasurements() {
-        return measurementsService.getMeasurements().stream()
-                .map(this::convertToMeasurementDTO).collect(Collectors.toList());
+    public AllMeasurementsResponse getMeasurements() {
+        return new AllMeasurementsResponse(measurementsService.getMeasurements().stream()
+                .map(this::convertToMeasurementDTO).collect(Collectors.toList()));
     }
 
     @GetMapping("/rainyDaysCount")

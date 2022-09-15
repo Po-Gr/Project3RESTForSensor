@@ -28,6 +28,7 @@ public class Measurement {
     private Sensor sensor;
 
     @Column(name = "measured_at")
+    @NotNull
     private LocalDateTime measuredAt;
 
     public Measurement() {
